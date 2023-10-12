@@ -17,29 +17,6 @@ pipeline
                 git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git' 
              }
          }
-     
-        stage("Build Application")
-         {
-            steps 
-             {
-                sh "mvn clean package"
-             }
-         }
-     
-        stage("Test Application")
-         {
-            steps 
-             {
-                sh "mvn test"
-             }       
-            post
-             {
-                always 
-                 {
-                   junit '**/target/surefire-reports/TEST-*.xml'
-                 }
-             }
-         }
         stage("Sonarqube Analysis") 
          {
             steps 
@@ -62,6 +39,28 @@ pipeline
                    waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
                 }
              }
-         } 
+         }     
+        stage("Build Application")
+         {
+            steps 
+             {
+                sh "mvn clean package"
+             }
+         }
+     
+        stage("Test Application")
+         {
+            steps 
+             {
+                sh "mvn test"
+             }       
+            post
+             {
+                always 
+                 {
+                   junit '**/target/surefire-reports/TEST-*.xml'
+                 }
+             }
+         }
       }
 }
