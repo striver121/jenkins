@@ -30,7 +30,11 @@ pipeline
              {
                script
                 {
-                  dependencyCheck additionalArguments: '', odcInstallation: 'dep-chk'
+                  dependencyCheck additionalArguments: ''' 
+                      -o "./" 
+                      -s "./"
+                      -f "ALL" 
+                      --prettyPrint''', odcInstallation: 'dep-chk'
                   dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
              }
