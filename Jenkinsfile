@@ -17,6 +17,24 @@ pipeline
                 git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git' 
              }
          }
+        stage("Compile Application")
+         {
+            steps 
+             {
+                sh "mvn clean compile"
+             }
+         }
+        stage("OWASP SCAN - Dependency Scanner")
+         {
+            steps 
+             {
+               script
+                {
+                  dependencyCheck additionalArguments: '', odcInstallation: 'dep-chk'
+                  dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+             }
+         }           
         stage("Sonarqube Analysis") 
          {
             steps 
@@ -46,18 +64,7 @@ pipeline
              {
                 sh "mvn clean package"
              }
-         }
-        stage("OWASP SCAN - Dependency Scanner")
-         {
-            steps 
-             {
-               script
-                {
-                  dependencyCheck additionalArguments: '', odcInstallation: 'dep-chk'
-                  dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-             }
-         }    
+         } 
         stage("Test Application")
          {
             steps 
