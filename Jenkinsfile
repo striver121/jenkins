@@ -53,7 +53,7 @@ pipeline
              {
                script
                 {
-                  dependencyCheck additionalArguments: '', odcInstallation: 'DP-check'
+                  dependencyCheck additionalArguments: '', odcInstallation: 'dep-chk'
                   dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
              }
