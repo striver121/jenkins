@@ -17,28 +17,7 @@ pipeline
                 git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git' 
              }
          }
-        stage("Compile Application")
-         {
-            steps 
-             {
-                sh "mvn clean compile"
-             }
-         }
-        stage("OWASP SCAN - Dependency Scanner")
-         {
-            steps 
-             {
-               script
-                {
-                  dependencyCheck additionalArguments: ''' 
-                      -o "./" 
-                      -s "./"
-                      -f "ALL" 
-                      --prettyPrint''', odcInstallation: 'dep-chk'
-                  dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-             }
-         }           
+        
         stage("Sonarqube Analysis") 
          {
             steps 
@@ -52,6 +31,7 @@ pipeline
                 }
              }
          }
+         
         stage("Quality Gate") 
          {
             steps 
@@ -61,7 +41,8 @@ pipeline
                    waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
                 }
              }
-         }     
+         }   
+         
         stage("Build Application")
          {
             steps 
