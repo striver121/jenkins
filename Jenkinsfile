@@ -47,7 +47,17 @@ pipeline
                 sh "mvn clean package"
              }
          }
-     
+        stage("OWASP SCAN - Dependency Scanner")
+         {
+            steps 
+             {
+               script
+                {
+                  dependencyCheck additionalArguments: '', odcInstallation: 'DP-check'
+                  dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+             }
+         }    
         stage("Test Application")
          {
             steps 
