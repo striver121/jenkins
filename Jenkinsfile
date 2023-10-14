@@ -97,8 +97,8 @@ podTemplate(containers: [
                  docker.withRegistry('', 'dockerhub-creds') {
                     sh 'set +e'
 /*                    sh '/bin/sh' */
-                    sh 'docker image tag demoapp-$BUILD_TAG demoapp-$BUILD_ID'
-                    sh 'docker push striver121/demoapp-$BUILD_ID'
+                    sh 'docker image tag demoapp-$BUILD_TAG striver121/demoapp-$BUILD_TAG'
+                    sh 'docker push striver121/demoapp-$BUILD_TAG'
                 }
             }
         }
