@@ -55,7 +55,7 @@ podTemplate(containers: [
         stage('MAVEN BUILD TARGET') {
             container('maven') {
                 stage('Build a Maven project') {
-                    sh 'mvn clean package'
+                    sh 'mvn clean package war:war'
                 }
             }
         }
