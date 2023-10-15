@@ -1,5 +1,5 @@
 #surefire
-#Sun Oct 15 07:48:52 EDT 2023
+#Sun Oct 15 08:12:41 EDT 2023
 childDelegation=false
 classPathUrl.0=/Users/mahirkadri/jenkins/jenkins/target/test-classes
 classPathUrl.1=/Users/mahirkadri/jenkins/jenkins/target/classes
@@ -96,7 +96,7 @@ mainCliOptions2=LOGGING_LEVEL_INFO
 mainCliOptions3=LOGGING_LEVEL_DEBUG
 mainCliOptions4=SHOW_ERRORS
 mainCliOptions5=REACTOR_FAIL_FAST
-pluginPid=62348
+pluginPid=63460
 preferTestsFromInStream=false
 providerConfiguration=org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
 reportsDirectory=/Users/mahirkadri/jenkins/jenkins/target/surefire-reports
