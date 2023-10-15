@@ -1,4 +1,4 @@
-package com.showcase.mk.demoapp;
+package com.dmancloud.dinesh.demoapp;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
