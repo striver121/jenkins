@@ -79,7 +79,7 @@ podTemplate(containers: [
         stage('Image Build') {
             container('docker') {
                  docker.withRegistry('', 'dockerhub-creds') {
-                    sh 'docker build -t demoapp-$BUILD_TAG .'
+                    sh 'docker build -t demoapp .'
                 }
             }
         }
@@ -87,26 +87,48 @@ podTemplate(containers: [
         stage('Scanning IMAGE for Security') {
                 container('docker') {
                     stage('Scan Image') {
-                        sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp-$BUILD_TAG --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
+                        sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
                     }
                 }
         }
-      
+
+        stage('Upload Artifacts to Nexus') {
+            container('jnlp') {
+                stage('Looking the Workspace target directory for WAR file Packaging files') {
+                    nexusArtifactUploader artifacts: [
+                        [
+                        artifactId: 'spring-boot-starter-parent', 
+                        classifier: '', 
+                        file: 'target/demoapp-1.0.0.war', 
+                        type: 'war'
+                        ]
+                    ], 
+                    credentialsId: 'nexus-jenkins', 
+                    groupId: 'com.dmancloud.dinesh', 
+                    nexusUrl: 'nexus-nexus-repository-manager.nexus.svc.cluster.local:8081', 
+                    nexusVersion: 'nexus3', 
+                    protocol: 'http', 
+                    repository: 'demo-app', 
+                    version: '1.0.0'                    
+                }
+            }
+        }
+        
         stage('Image Push') {
             container('docker') {
                  docker.withRegistry('', 'dockerhub-creds') {
                     sh 'set +e'
 /*                    sh '/bin/sh' */
-                    sh 'docker image tag demoapp-$BUILD_TAG striver121/demoapp-$BUILD_TAG'
-                    sh 'docker push striver121/demoapp-$BUILD_TAG'
+                    sh 'docker image tag demoapp striver121/demoapp:latest'
+                    sh 'docker push striver121/demoapp:latest'
                 }
             }
         }
 
-/*        stage ("wait_for_testing")
+     /*   stage ("wait_for_testing")
             container('docker') {
                 sh 'sleep 3000'
             }        
-*/        
+     */   
     }
   } 
