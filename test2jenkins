@@ -41,10 +41,12 @@ podTemplate(containers: [
                         sh 'mvn dependency:copy-dependencies'
                     }
                     
-                stage ("2.4: OWASP SBOM - Scanning Vulnabilities on Project's Dependencies")
+                stage ("2.4: OWASP SBOM Scanning Project Dependencies") {
                     container('maven') {
-                        dependencyCheck additionalArguments: '--cveStartYear 2023 --failOnCVSS 7 --scan target/dependency/*.jar --format HTML --prettyPrint', odcInstallation: 'dep-chk'
-                    }                    
+                        dependencyCheck additionalArguments: '--cveSar 2023 --failOnCVSS 7 --scan target/dependency/*.jar --format HTML --prettyPrint', odcInstallation: 'dep-chk'
+                        }
+                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: '', reportFiles: 'dependency-*.html', reportName: 'Dependency-Check-Report', reportTitles: 'SBOM', useWrapperFileDirectly: true])
+                }
             }
  
             stage ('3. Building the App Code & Perform the Test') {
