@@ -1,0 +1,158 @@
+environment {
+    def APP_NAME = "demoapp"
+    def DOCKER_USER = "striver121"
+    }
+
+podTemplate(containers: [
+    containerTemplate(name: 'java', image: 'eclipse-temurin:17.0.6_10-jdk', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'maven', image: 'maven:3.9.0-eclipse-temurin-17', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'trivy', image: 'aquasec/trivy:0.45.1', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'dchk', image: 'owasp/dependency-check', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'docker', image: 'docker:20.10.16-dind', ttyEnabled: true, privileged: true)
+  ]) {
+    node(POD_LABEL) {
+        
+            stage ("1. Pulling Repository to Jenkins Workspace + Vulnerability Scanning") {
+                git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git'
+ /*                   stage ("1.1: Trivy Local Repo Scanning for Vulnerability")
+                        container('trivy') {
+                            sh 'trivy filesystem . --no-progress --ignore-unfixed --exit-code 0 --severity HIGH,CRITICAL'
+                            sh 'trivy plugin install github.com/aquasecurity/trivy-plugin-kubectl'
+                        }
+   */         } 
+  /*          
+            stage('2. Sonarqube Code Analysis') {
+                stage ("2.1: SONARQUBE Analysis")
+                    container('maven') {
+                        withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') {
+                            sh 'mvn sonar:sonar'
+                        }    
+                    }      
+                    
+                stage ("2.2: QUALITY GATES")
+                    container('maven') {
+                        timeout(time:3, unit: 'HOURS') {
+                            waitForQualityGate(abortPipeline: 'true', credentialsId: 'jenkins-sonarqube-token')
+                        }    
+                    }
+            }
+*/
+            stage('3. Building the App Code & Perform the Test') {
+                stage ("3.1: Buil a Maven Project")
+                    container('maven') {
+ /*                       sh 'mvn clean package war:war' */
+                        sh 'mvn dependency:copy-dependencies'
+                    }
+                stage ("3.1: Buil a Maven Project")
+                    container('trivy') {
+                        sh 'tree'
+                    }                    
+                    
+   /*             stage ("3.2: Test Maven Built Application")
+                    container('maven') {
+                        sh 'mvn test'
+                    }
+*/                
+                stage ("3.3: OWASP SBOM Scanning on Dependencies on Artifacts")
+                    container('dchk') {
+                        dependencyCheck additionalArguments: '--cveStartYear 2023 --scan target/dependency --format XML', odcInstallation: 'dep-chk'
+ /*                       sh 'dependency-check.sh --project test --scan target/dependencies'
+/*                        sh 'mvn org.owasp:dependency-check-maven:aggregate'
+                        publish ./target/dependency-check.xml*/
+                    }
+                    
+                stage ("3.1: Buil a Maven Project")
+                    container('trivy') {
+                        sh 'tree'
+                    }    
+            }
+    
+    /*        stage('4. Uploading Artifacts to Repository and perform SBOM Scan on dependency') {
+                stage ("4.1: Pushing Artifacts to Nexus")
+                    container('jnlp') {
+                        nexusArtifactUploader artifacts: [
+                            [    
+                            artifactId: 'spring-boot-starter-parent', 
+                            classifier: '', 
+                            file: 'target/demoapp-1.0.0.war', 
+                            type: 'war'
+                            ]
+                        ],
+                        credentialsId: 'nexus-jenkins', 
+                        groupId: 'com.dmancloud.dinesh', 
+                        nexusUrl: 'nexus-nexus-repository-manager.nexus.svc.cluster.local:8081', 
+                        nexusVersion: 'nexus3', 
+                        protocol: 'http', 
+                        repository: 'demo-app', 
+                        version: '1.0.0'                    
+                    }
+                
+                stage ("4.2: OWASP SBOM Scanning on Dependencies on Artifacts")
+                    container('jnlp') {
+                        dependencyCheck additionalArguments: '--cveStartYear 2023 --scan target/demoapp-1.0.0.war --format XML', odcInstallation: 'dep-chk'
+                    }
+            }
+            
+            stage('5. Build Image & Perform Vulnerability Scanning') {
+                stage ("5.1: Building Docker Image")
+                    container('docker') {
+                        docker.withRegistry('', 'dockerhub-creds') {
+                            sh 'docker build -t demoapp .'
+                        }
+                    }    
+                    
+                stage ("5.2: Performing Trivy Vulnerability Scanning on Image")
+                    container('docker') {
+                            sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
+                    }
+            }
+
+            
+    /*        stage('Test Application') {
+                container('maven') {
+                    stage('Test Maven Built Application') {
+                        sh 'mvn clean install site surefire-report:report'
+                    }
+                }
+            }
+    
+            stage('Upload Artifacts to Nexus') {
+                container('jnlp') {
+                    stage('Looking the Workspace target directory for WAR file Packaging files') {
+                        publishHTML([
+                                allowMissing: false, 
+                                alwaysLinkToLastBuild: false, 
+                                keepAll: false, 
+                                reportDir: 'target/site', 
+                                reportFiles: 'surefire-report.html', 
+                                reportName: 'Surefire Report', 
+                                reportTitles: 'SBOM', 
+                                useWrapperFileDirectly: true])
+                    }
+                }
+            }
+           
+            stage ("tree")
+                container('trivy') {
+                    sh 'tree'
+                }
+                
+      /*      stage ("wait_for_testing")
+                container('docker') {
+                    sh 'sleep 3000'
+                } 
+                
+              stage('Cubumber Reports') {
+                container('jnlp') {
+                    stage('Generating Reports from WorkDir') {
+                        cucumber buildStatus: "UNSTABLE",
+                            fileIncludePattern: "**
+                            /*.json",
+                            jsonReportDirectory: 'target'
+                    }
+                }
+            }
+  */  
+        
+    }
+  } 
