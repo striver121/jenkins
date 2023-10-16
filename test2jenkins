@@ -31,7 +31,7 @@ podTemplate(containers: [
                     
                 stage ("2.2: QUALITY GATES")
                     container('maven') {
-                        timeout(time:3, unit: 'HOURS') {
+                        timeout(time:3, unit: 'MINUTES') {
                             waitForQualityGate(abortPipeline: 'true', credentialsId: 'jenkins-sonarqube-token')
                         }    
                     }
