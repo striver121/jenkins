@@ -73,7 +73,7 @@ podTemplate(containers: [
                     }
             }
     
-            stage ('5. Uploading Artifacts to Repository') {
+            stage ('5. Uploading & Pusing Stage') {
                 stage ("5.1: Pushing Artifacts to Nexus")
                     container('jnlp') {
                         nexusArtifactUploader artifacts: [
