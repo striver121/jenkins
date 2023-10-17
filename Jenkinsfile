@@ -106,6 +106,7 @@ podTemplate(containers: [
             stage ('6. Generating Reports') {
                 stage ('6.1: JUNIT Testing Report')
                     container('maven') {
+                    /*    archiveArtifacts artifacts: 'target/dependency/*.jar', fingerprint: true */
                         junit '**/target/surefire-reports/TEST-*.xml'
                 }
             
