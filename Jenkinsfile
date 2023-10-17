@@ -1,9 +1,6 @@
 environment {
-    def APP_NAME = "java_app"
-    def RELEASE = "1.0.0"
+    def APP_NAME = "demoapp"
     def DOCKER_USER = "striver121"
-    def IMAGE_NAME = "my-demo-app"
-    def IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
     }
 
 podTemplate(containers: [
@@ -11,124 +8,118 @@ podTemplate(containers: [
     containerTemplate(name: 'maven', image: 'maven:3.9.0-eclipse-temurin-17', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'trivy', image: 'aquasec/trivy:0.45.1', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'docker', image: 'docker:20.10.16-dind', ttyEnabled: true, privileged: true)
-  ]
-  /*,
-    volumes: [
-        hostPathVolume(mountPath: '/usr/bin/docker', hostPath: '/usr/bin/docker')
-        hostPathVolume(mountPath: '/var/run/docker.sock')', hostPath: '/var/run/docker.sock')
-        hostPathVolume(mountPath: '/app', hostPath: '/tmp/app')
-   ]*/
-) 
-{
+  ]) {
     node(POD_LABEL) {
-/*        stage ("print vars")
-            container('trivy') {
-                sh 'printenv'
+        
+            stage ("1. Pulling Repository to Jenkins Workspace + Vulnerability Scanning") {
+                git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git'
+                    stage ("1.1: Trivy Local Repo Scanning for Vulnerability")
+                        container('trivy') {
+                            sh 'trivy filesystem . --no-progress --ignore-unfixed --exit-code 0 --severity HIGH,CRITICAL'
+                            sh 'trivy plugin install github.com/aquasecurity/trivy-plugin-kubectl'
+                        }
             } 
-*/            
-        stage('Checkout from PRIVATE SCM & REPO Scanning') {
-            git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git'
+            
+            stage('2. Sonarqube Code Analysis') {
+                stage ("2.1: SONARQUBE Analysis")
+                    container('maven') {
+                        withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') {
+                            sh 'mvn sonar:sonar'
+                        }    
+                    }      
+                    
+                stage ("2.2: QUALITY GATES")
+                    container('maven') {
+                        timeout(time:3, unit: 'HOURS') {
+                            waitForQualityGate(abortPipeline: 'true', credentialsId: 'jenkins-sonarqube-token')
+                        }    
+                    }
+                    
+                stage ("2.3: Building Project Dependencies")
+                    container('maven') {
+                        sh 'mvn dependency:copy-dependencies'
+                    }
+                    
+                stage ("2.4: OWASP SBOM - Scanning Vulnabilities on Project's Dependencies")
+                    container('maven') {
+                        dependencyCheck additionalArguments: '--cveStartYear 2023 --failOnCVSS 8 --scan target/dependency/*.jar --format HTML --prettyPrint', odcInstallation: 'dep-chk'
+                    }                    
+            }
+ 
+            stage('3. Building the App Code & Perform the Test') {
+                stage ("3.1: Buil a Maven Project")
+                    container('maven') {
+                        sh 'mvn clean package war:war'
+                    }
+                    
+                stage ("3.2: Test Maven Built Application")
+                    container('maven') {
+                        sh 'mvn test'
+                    }
+            }
+            
+            stage('4. Build Image & Perform Vulnerability Scanning on Image') {
+                stage ("4.1: Building Docker Image")
+                    container('docker') {
+                        docker.withRegistry('', 'dockerhub-creds') {
+                            sh 'docker build -t demoapp .'
+                        }
+                    }    
+                    
+                stage ("4.2: Performing Trivy Vulnerability Scanning on Image")
+                    container('docker') {
+                            sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
+                    }
+            }
+    
+            stage('5. Uploading Artifacts to Repository') {
+                stage ("5.1: Pushing Artifacts to Nexus")
+                    container('jnlp') {
+                        nexusArtifactUploader artifacts: [
+                            [    
+                            artifactId: 'spring-boot-starter-parent', 
+                            classifier: '', 
+                            file: 'target/demoapp-1.0.0.war', 
+                            type: 'war'
+                            ]
+                        ],
+                        credentialsId: 'nexus-jenkins', 
+                        groupId: 'com.dmancloud.dinesh', 
+                        nexusUrl: 'nexus-nexus-repository-manager.nexus.svc.cluster.local:8081', 
+                        nexusVersion: 'nexus3', 
+                        protocol: 'http', 
+                        repository: 'demo-app', 
+                        version: '1.0.0'                    
+                    }
+                    
+                stage('Pushing the Docker Image to Image Registery') {
+                    container('docker') {
+                        docker.withRegistry('', 'dockerhub-creds') {
+                            sh 'docker image tag demoapp striver121/demoapp:latest'
+                            sh 'docker push striver121/demoapp:latest'
+                        }
+                    }
+                }    
+            
+            }
+            
+            stage ('6. Generating Reports') {
+                stage ('6.1: JUNIT Testing Report')
+                    container('maven') {
+                        junit '**/target/surefire-reports/TEST-*.xml'
+                }
+            
+                stage('6.2: Dependency-Check Results publishing to viewable HTML Reports')
+                    container('jnlp') {
+                        publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: '', reportFiles: 'dependency-*.html', reportName: 'Dependency-Check-Report', reportTitles: 'SBOM', useWrapperFileDirectly: true])
+                    }
+            }            
+
+/*
+            stage ("tree")
                 container('trivy') {
-                    stage('Scan Remote') {
-                        sh 'trivy filesystem . --ignore-unfixed --exit-code 0'
-                        sh 'trivy plugin install github.com/aquasecurity/trivy-plugin-kubectl'
-                    }
+                    sh 'tree'
                 }
-        }    
-
-        stage('SONARQUBE ANALYSIS') {
-            container('maven') {
-                withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') {
-                    sh 'mvn sonar:sonar'
-                }
-            }
-        }
-        
-        stage('QUALITY GATES') {
-            container('maven') {
-                timeout(time:1, unit: 'HOURS') {
-                    waitForQualityGate(abortPipeline: 'false', credentialsId: 'jenkins-sonarqube-token')
-                }
-            }
-        }    
-
-        stage('MAVEN BUILD TARGET') {
-            container('maven') {
-                stage('Build a Maven project') {
-                    sh 'mvn clean package war:war'
-                }
-            }
-        }
-        
-        stage('Test Application') {
-            container('maven') {
-                stage('Test Maven Built Application') {
-                    sh 'mvn test'
-                }
-            }
-        }   
-        
-        stage('JUNIT Test Reports') {
-            container('maven') {
-                stage('Looking the Workspace target directory for XML reports') {
-                    junit '**/target/surefire-reports/TEST-*.xml'
-                }
-            }
-        }        
-
-        stage('Image Build') {
-            container('docker') {
-                 docker.withRegistry('', 'dockerhub-creds') {
-                    sh 'docker build -t demoapp .'
-                }
-            }
-        }
-
-        stage('Scanning IMAGE for Security') {
-                container('docker') {
-                    stage('Scan Image') {
-                        sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
-                    }
-                }
-        }
-
-        stage('Upload Artifacts to Nexus') {
-            container('jnlp') {
-                stage('Looking the Workspace target directory for WAR file Packaging files') {
-                    nexusArtifactUploader artifacts: [
-                        [
-                        artifactId: 'spring-boot-starter-parent', 
-                        classifier: '', 
-                        file: 'target/demoapp-1.0.0.war', 
-                        type: 'war'
-                        ]
-                    ], 
-                    credentialsId: 'nexus-jenkins', 
-                    groupId: 'com.dmancloud.dinesh', 
-                    nexusUrl: 'nexus-nexus-repository-manager.nexus.svc.cluster.local:8081', 
-                    nexusVersion: 'nexus3', 
-                    protocol: 'http', 
-                    repository: 'demo-app', 
-                    version: '1.0.0'                    
-                }
-            }
-        }
-        
-        stage('Image Push') {
-            container('docker') {
-                 docker.withRegistry('', 'dockerhub-creds') {
-                    sh 'set +e'
-/*                    sh '/bin/sh' */
-                    sh 'docker image tag demoapp striver121/demoapp:latest'
-                    sh 'docker push striver121/demoapp:latest'
-                }
-            }
-        }
-
-     /*   stage ("wait_for_testing")
-            container('docker') {
-                sh 'sleep 3000'
-            }        
-     */   
+*/        
     }
   } 
