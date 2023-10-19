@@ -95,8 +95,8 @@ podTemplate(containers: [
                 stage('Pushing the Docker Image to Image Registery') {
                     container('docker') {
                         docker.withRegistry('', 'dockerhub-creds') {
-                            sh 'docker image tag demoapp striver121/demoapp:latest'
-                            sh 'docker push striver121/demoapp:latest'
+                            sh 'docker image tag demoapp striver121/demoapp:v.0.${BUILD_ID}'
+                            sh 'docker push striver121/demoapp:v.0.${BUILD_ID}'
                         }
                     }
                 }    
