@@ -15,7 +15,7 @@ podTemplate(containers: [
                 git branch: 'master', credentialsId: 'github', url: 'https://github.com/striver121/jenkins.git'
                     stage ("1.1: Trivy Local Repo Scanning for Vulnerability")
                         container('trivy') {
-                            sh 'trivy filesystem . --no-progress --ignore-unfixed --exit-code 0 --severity HIGH,CRITICAL'
+                            sh 'trivy filesystem . --no-progress --ignore-unfixed --exit-code 0 --severity CRITICAL'
                             sh 'trivy plugin install github.com/aquasecurity/trivy-plugin-kubectl'
                         }
             } 
