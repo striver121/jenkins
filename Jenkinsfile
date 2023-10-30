@@ -68,7 +68,8 @@ podTemplate(containers: [
                     
                 stage ("4.2: Performing Trivy Vulnerability Scanning on Image")
                     container('docker') {
-                            sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
+                            sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock -v ${WORKSPACE}:${WORKSPACE} aquasec/trivy image --no-progress --scanners vuln  --exit-code 0 --severity CRITICAL --format template --template "@/contrib/html.tpl" -o ${WORKSPACE}/trivy_report.html demoapp:latest')
+                            /*sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image demoapp:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')*/
                     }
             }
     
@@ -114,13 +115,35 @@ podTemplate(containers: [
                     container('jnlp') {
                         publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: '', reportFiles: 'dependency-*.html', reportName: 'Dependency-Check-Report', reportTitles: 'SBOM', useWrapperFileDirectly: true])
                     }
+                
+                stage('6.3: Trivy Image Scan Results publishing to viewable HTML Reports')
+                    archiveArtifacts artifacts: "trivy_report.html", fingerprint: true
+                    container('jnlp') {
+                        publishHTML (target: [
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: false,
+                            keepAll: true,
+                            reportDir: '.',
+                            reportFiles: 'trivy_report.html',
+                            reportName: 'Trivy Scan',
+                            ])
+                    }                
+                
             }            
 
-/*
+/* DEBUG
             stage ("tree")
-                container('trivy') {
-                    sh 'tree'
+                 container('trivy') {
+                      sh 'tree'
                 }
+            stage ("sleep")
+                 container('trivy') {
+                      sh 'sleep 30000'
+                }   
+            stage ("env")
+                 container('jnlp') {
+                      sh 'printenv'
+                }                               
 */        
     }
   } 
