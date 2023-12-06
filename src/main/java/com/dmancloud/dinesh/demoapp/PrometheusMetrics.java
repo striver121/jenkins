@@ -1,3 +1,5 @@
+package com.dmancloud.dinesh.demoapp;
+
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
@@ -7,7 +9,7 @@ import io.prometheus.client.exporter.HTTPServer;
 import java.io.IOException;
 import java.util.Random;
 
-public class Main {
+public class PrometheusMetrics {
 
    private static double rand(double min, double max) {
        return min + (Math.random() * (max - min));
@@ -38,7 +40,7 @@ public class Main {
 
        try {
 
-           HTTPServer server = new HTTPServer(8080);
+           HTTPServer server = new HTTPServer(9400);
        } catch (IOException e) {
            e.printStackTrace();
        }
