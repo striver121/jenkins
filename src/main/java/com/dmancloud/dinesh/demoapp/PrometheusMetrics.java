@@ -40,7 +40,7 @@ public class PrometheusMetrics {
 
        try {
 
-           HTTPServer server = new HTTPServer(9400);
+           HTTPServer server = new HTTPServer(8080);
        } catch (IOException e) {
            e.printStackTrace();
        }
